@@ -1,0 +1,91 @@
+# Playtime is stored in the database in minutes.
+# The display format is converted to hours and minutes in the /playtime command.
+
+# Supported placeholders: %playtime_formatted%, %player%, %hours%, %minutes%, %last_seen_date%
+
+# Time in seconds before entering AFK mode
+afk_timeout_seconds: 300
+
+# Sensitivity for exiting AFK when moving
+afk:
+  moveThreshold: 0.2
+
+# How often the plugin updates playtime data, in seconds
+playtime_update_interval_seconds: 60
+
+# Interval for autorank checks (longer = reduces lag)
+rank_check_interval_minutes: 5
+
+# /playtime message shown to the player. Supported variables: %player%, %hours%, %minutes%
+# Minecraft color codes (&) work
+# PlaceholderAPI compatible
+# You can add or remove lines as needed
+playtime_format:
+  - "&a%player%'s playtime: %hours%h %minutes%min"
+  - "&7First join: %first_join_date%"
+
+# Line format for the top list. Supported variables: %rank%, %player%, %hours%, %minutes%
+top_playtime_count: 10
+
+top_playtime_header: "&6--- Top 10 Players ---"
+top_playtime_format: "&e%rank%. &a%player%: %hours%h %minutes%min"
+top_playtime_footer: "&6-----------------------"
+
+# Message shown to player when entering or leaving AFK mode
+afk_notifications_enabled: true
+afk_enter_message: "&7%player% is now AFK."
+afk_exit_message: "&7%player% is no longer AFK."
+
+# MYSQL Settings. If your password includes special characters like !,: or @, wrap it in quotes like "password"
+database:
+  use-mysql: false
+  mysql:
+    host: localhost
+    port: 3306
+    database: playtime
+    username: root
+    password: password
+  sqlite:
+    file: data.db
+
+# Playtimes plugin database for /importplaytimes command
+playtimes_import_mysql:
+  enabled: false
+  host: localhost
+  port: 3306
+  database: playtimes
+  username: root
+  password: example
+
+# Automatic ranking integration with LuckPerms. group = lp rank name
+rank_rewards:
+  - hours: 30
+    group: "beginner"
+  - hours: 100
+    group: "experienced"
+  - hours: 500
+    group: "veteran"
+  - hours: 1000
+    group: "legend"
+  - hours: 2000
+    group: "myth"
+  - hours: 3000
+    group: "immortal"
+  - hours: 4000
+    group: "timeless"
+
+# Message settings when a player gets a new rank
+
+# Should rankup broadcasts and first join messages be sent to BungeeCord? (if yes, you must have PlaytimeTrackerTGEBungee installed on the proxy!)
+use_bungee: true
+
+# Show the rankup message to the player
+rankup_self_message_enabled: true
+rankup_self_message: "&aCongratulations! You received a new rank: &e%rank%"
+
+# Show the rankup message to all players
+rankup_broadcast_enabled: true
+rankup_broadcast_message: "&6%player% has achieved a new rank: &e%rank%!"
+
+enable_first_join_message: true
+first_join_message: "&e%player% joined the server for the first time!"

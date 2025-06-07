@@ -1,0 +1,87 @@
+name: PlaytimeTrackerTGE
+version: '1.0-SNAPSHOT'
+author: TEGE56
+main: org.tege56.playtimeTrackerTGE.PlaytimeTrackerTGE
+api-version: '1.21'
+
+commands:
+  playtime:
+    description: Shows your own or another player's playtime.
+    usage: /playtime [player]
+    permission: playtime.use
+    permission-message: §cYou do not have permission to use this command.
+
+  playtimetop:
+    description: Shows the top 10 players by playtime.
+    usage: /playtimetop
+    permission: playtimetop.use
+    permission-message: §cYou do not have permission to use this command.
+
+  playtimeadd:
+    description: Adds playtime to a player.
+    usage: /playtimeadd <player> <minutes>
+    permission: playtime.add
+    permission-message: §cYou do not have permission to use this command.
+
+  playtimeset:
+    description: Sets a player's playtime.
+    usage: /playtimeset <player> <minutes>
+    permission: playtime.set
+    permission-message: §cYou do not have permission to use this command.
+
+  playtimereset:
+    description: Resets a player's playtime.
+    usage: /playtimereset <player>
+    permission: playtime.reset
+    permission-message: §cYou do not have permission to use this command.
+
+  playtimetracker:
+    description: Reloads the configuration file.
+    usage: /playtimetracker reload
+    permission: playtimetracker.reload
+    permission-message: §cYou do not have permission to use this command.
+
+  removelastrank:
+    description: Removes the player's last received rank from the database.
+    usage: /removelastrank <player>
+    permission: playtimetracker.removelastrank
+    permission-message: §cYou do not have permission to use this command.
+
+  importplaytimes:
+    description: Imports PlayTimes plugin data into the database.
+    usage: /importplaytimes
+    permission: playtimetracker.import
+    permission-message: §cYou do not have permission to use this command.
+
+permissions:
+  playtime.use:
+    description: Allows usage of the /playtime command.
+    default: true
+
+  playtimetop.use:
+    description: Allows usage of the /playtimetop command.
+    default: true
+
+  playtime.reset:
+    description: Allows resetting player playtime.
+    default: op
+
+  playtime.add:
+    description: Allows adding playtime to a player.
+    default: op
+
+  playtime.set:
+    description: Allows setting a player's playtime.
+    default: op
+
+  playtimetracker.reload:
+    description: Allows reloading the configuration.
+    default: op
+
+  playtimetracker.removelastrank:
+    description: Allows using the /removelastrank command.
+    default: op
+
+  playtimetracker.import:
+    description: Allows importing PlayTimes plugin data into the database.
+    default: op

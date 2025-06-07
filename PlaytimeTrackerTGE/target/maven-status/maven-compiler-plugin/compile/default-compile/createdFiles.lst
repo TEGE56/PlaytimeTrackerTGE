@@ -1,0 +1,14 @@
+org\tege56\playtimeTrackerTGE\ConfigUpdater.class
+org\tege56\playtimeTrackerTGE\storage\PlayerData.class
+org\tege56\playtimeTrackerTGE\storage\StorageProvider.class
+org\tege56\playtimeTrackerTGE\ImportPlayTimesCommand.class
+org\tege56\playtimeTrackerTGE\PlayTimesMySQLStorage.class
+org\tege56\playtimeTrackerTGE\PlaytimeExpansion.class
+org\tege56\playtimeTrackerTGE\storage\MySQLStorage.class
+org\tege56\playtimeTrackerTGE\RemoveLastRankCommand.class
+org\tege56\playtimeTrackerTGE\AutoRankManager.class
+org\tege56\playtimeTrackerTGE\AutoRankManager$RankReward.class
+org\tege56\playtimeTrackerTGE\storage\SQLiteStorage.class
+org\tege56\playtimeTrackerTGE\RankReward.class
+org\tege56\playtimeTrackerTGE\PluginMessageSender.class
+org\tege56\playtimeTrackerTGE\PlaytimeTrackerTGE.class
