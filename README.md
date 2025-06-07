@@ -11,7 +11,7 @@ PlaytimeTrackerTGE is a Minecraft server plugin designed to track and manage pla
 ## Features
 
 - Track individual player playtime with precision.
-- View your own or others' playtime using simple commands.
+- View your own or others playtime using simple commands.
 - Display the top 10 players sorted by playtime.
 - Add, set, or reset playtime manually for players.
 - **AFK time is not counted towards playtime**, and AFK detection settings are configurable.
