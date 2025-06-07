@@ -1,0 +1,4 @@
+name: PlaytimeTrackerTGEBungee
+version: '1.0-SNAPSHOT'
+author: TEGE56
+main: org.tege56.playtimeTrackerTGEBungee.PlaytimeTrackerTGEBungee
