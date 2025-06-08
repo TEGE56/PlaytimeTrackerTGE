@@ -69,7 +69,7 @@ public class SQLiteStorage implements StorageProvider {
             }
             return true;
         } catch (SQLException | ClassNotFoundException e) {
-            plugin.getLogger().severe("Database connection verification failed: " + e.getMessage());
+            plugin.getLogger().severe("Failed to ensure database connection: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -127,7 +127,7 @@ public class SQLiteStorage implements StorageProvider {
             ps.setString(2, username);
             ps.executeUpdate();
         } catch (SQLException e) {
-            plugin.getLogger().severe("Error adding playtime to SQLite: " + username);
+            plugin.getLogger().severe("Error adding playtime in SQLite for player: " + username);
             e.printStackTrace();
         }
     }
@@ -221,7 +221,7 @@ public class SQLiteStorage implements StorageProvider {
                 try {
                     uuids.add(UUID.fromString(uuidStr));
                 } catch (IllegalArgumentException e) {
-                    plugin.getLogger().warning("Invalid UUID in database: " + uuidStr);
+                    plugin.getLogger().warning("Invalid UUID in the database: " + uuidStr);
                 }
             }
         } catch (SQLException e) {
@@ -260,7 +260,7 @@ public class SQLiteStorage implements StorageProvider {
                 connection.close();
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Error closing database connection.");
+            plugin.getLogger().severe("Error closing the database connection.");
             e.printStackTrace();
         }
     }
@@ -304,7 +304,7 @@ public class SQLiteStorage implements StorageProvider {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Error fetching top players.");
+            plugin.getLogger().severe("Error for loading top playtimes.");
             e.printStackTrace();
         }
         return topPlayers;
@@ -338,7 +338,7 @@ public class SQLiteStorage implements StorageProvider {
             }
 
         } catch (SQLException e) {
-            plugin.getLogger().severe("Error fetching top playtimes.");
+            plugin.getLogger().severe("Error for loading top playtimes.");
             e.printStackTrace();
         }
 
@@ -375,19 +375,38 @@ public class SQLiteStorage implements StorageProvider {
 
     @Override
     public boolean isFirstJoin(UUID uuid) {
-        String sql = "SELECT COUNT(*) AS count FROM playtime WHERE uuid = ?";
+        String sql = "SELECT first_join FROM playtime WHERE uuid = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, uuid.toString());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    int count = rs.getInt("count");
-                    return count == 0;
+                    long firstJoin = rs.getLong("first_join");
+                    return firstJoin == 0;
+                } else {
+                    return true;
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Error checking if player is first time: " + uuid);
+            plugin.getLogger().severe("Error checking first join for UUID: " + uuid);
+            e.printStackTrace();
+            return true;
+        }
+    }
+
+    @Override
+    public void saveImportedPlaytime(UUID uuid, long playtimeMinutes, String username, long firstJoin) {
+        String sql = "INSERT INTO playtime (uuid, username, play_minutes, first_join) VALUES (?, ?, ?, ?) "
+                + "ON CONFLICT(uuid) DO UPDATE SET play_minutes = excluded.play_minutes, username = excluded.username, first_join = excluded.first_join";
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, uuid.toString());
+            ps.setString(2, username);
+            ps.setLong(3, playtimeMinutes);
+            ps.setLong(4, firstJoin);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Error saving imported playtime for player: " + username);
             e.printStackTrace();
         }
-        return false; // If error or not found, not first time
     }
 }

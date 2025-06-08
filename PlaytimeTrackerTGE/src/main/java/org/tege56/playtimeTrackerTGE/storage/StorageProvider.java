@@ -23,6 +23,7 @@ public interface StorageProvider {
     void updatePlaytime(UUID uuid, String username, long minutes) throws SQLException;
     void resetPlaytime(String username);
     void setPlaytime(String username, long newMinutes) throws SQLException;
+    void saveImportedPlaytime(UUID uuid, long playtimeMinutes, String username, long firstJoin);
 
     void savePlaytime(UUID uuid, String name, long minutes);
     Optional<PlayerData> getPlaytime(String username);

@@ -213,10 +213,19 @@ public class AutoRankManager {
         }
     }
 
-    public void importPlayTimesDataWithAfk(PlayTimesMySQLStorage importStorage, MySQLStorage mainStorage) {
-        try {
-            ResultSet rs = importStorage.getPlaytimesData();
-            int imported = 0;
+    public void importPlayTimesDataWithAfk(PlayTimesMySQLStorage importStorage, StorageProvider mainStorage) {
+        if (importStorage == null || mainStorage == null) {
+            plugin.getLogger().severe("Import or main storage is null, aborting import.");
+            return;
+        }
+
+        int imported = 0;
+
+        try (ResultSet rs = importStorage.getPlaytimesData()) {
+            if (rs == null) {
+                plugin.getLogger().severe("Failed to retrieve data from import storage.");
+                return;
+            }
 
             while (rs.next()) {
                 String rawUuid = rs.getString("uniqueId");
@@ -231,35 +240,22 @@ public class AutoRankManager {
 
                 long totalTicks = rs.getLong("totalPlaytime");
                 long afkTicks = rs.getLong("totalAFKtime");
-                long playtimeMinutes = (totalTicks - afkTicks) / 60;
+                long playtimeMinutes = Math.max((totalTicks - afkTicks) / 60, 0); // estetään negatiivinen aika
 
                 OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(uuid);
-                String username = offlinePlayer.getName();
-                long firstJoin = offlinePlayer.getFirstPlayed() / 1000L; // seconds
+                String username = offlinePlayer.getName() != null ? offlinePlayer.getName() : "Unknown";
+                long firstJoin = offlinePlayer.getFirstPlayed() > 0 ? offlinePlayer.getFirstPlayed() / 1000L : System.currentTimeMillis() / 1000L;
 
                 mainStorage.saveImportedPlaytime(uuid, playtimeMinutes, username, firstJoin);
                 imported++;
             }
 
-            importStorage.disconnect();
-            plugin.getLogger().info("Imported " + imported + " player records.");
+            plugin.getLogger().info("Imported " + imported + " player record(s) successfully.");
         } catch (SQLException e) {
             plugin.getLogger().severe("Error during import: " + e.getMessage());
             e.printStackTrace();
-        }
-    }
-
-    public void importPlayTimesDataWithAfk(StorageProvider storage) {
-        // Empty implementation
-    }
-
-    private static class RankReward {
-        final long requiredHours;
-        final String group;
-
-        RankReward(long requiredHours, String group) {
-            this.requiredHours = requiredHours;
-            this.group = group;
+        } finally {
+            importStorage.disconnect();
         }
     }
 }

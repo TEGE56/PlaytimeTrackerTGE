@@ -3,14 +3,14 @@ package org.tege56.playtimeTrackerTGE;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.tege56.playtimeTrackerTGE.storage.MySQLStorage;
+import org.tege56.playtimeTrackerTGE.storage.StorageProvider;
 
 public class ImportPlayTimesCommand implements CommandExecutor {
     private final PlaytimeTrackerTGE plugin;
     private final AutoRankManager autoRankManager;
-    private final MySQLStorage mainStorage;
+    private final StorageProvider mainStorage;
 
-    public ImportPlayTimesCommand(PlaytimeTrackerTGE plugin, AutoRankManager autoRankManager, MySQLStorage mainStorage) {
+    public ImportPlayTimesCommand(PlaytimeTrackerTGE plugin, AutoRankManager autoRankManager, StorageProvider mainStorage) {
         this.plugin = plugin;
         this.autoRankManager = autoRankManager;
         this.mainStorage = mainStorage;

@@ -77,15 +77,15 @@ rank_rewards:
 # Message settings when a player gets a new rank
 
 # Should rankup broadcasts and first join messages be sent to BungeeCord? (if yes, you must have PlaytimeTrackerTGEBungee installed on the proxy!)
-use_bungee: true
+use_bungee: false
 
 # Show the rankup message to the player
 rankup_self_message_enabled: true
 rankup_self_message: "&aCongratulations! You received a new rank: &e%rank%"
 
 # Show the rankup message to all players
-rankup_broadcast_enabled: true
+rankup_broadcast_enabled: false
 rankup_broadcast_message: "&6%player% has achieved a new rank: &e%rank%!"
 
-enable_first_join_message: true
+enable_first_join_message: false
 first_join_message: "&e%player% joined the server for the first time!"

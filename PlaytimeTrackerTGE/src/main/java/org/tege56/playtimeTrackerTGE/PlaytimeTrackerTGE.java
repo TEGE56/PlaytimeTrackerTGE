@@ -73,16 +73,8 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
         loadPlugin();
 
         if (!setupDatabase()) return;
-
         if (!setupLuckPerms()) return;
-
         this.messageSender = new PluginMessageSender(this);
-
-        if (this.storage == null) {
-            this.storage = new SQLiteStorage(this, "playtime.db");
-            this.storage.connect();
-        }
-
         this.autoRankManager = new AutoRankManager(this, luckPerms, this.storage, this.messageSender);
 
         getServer().getMessenger().registerOutgoingPluginChannel(this, "tege56:playtimetrackertgebungee");
@@ -126,6 +118,7 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
             String sqliteFile = config.getString("sqlite.file", "playtimedata.db");
             SQLiteStorage sqliteStorage = new SQLiteStorage(this, sqliteFile);
             storage = sqliteStorage;
+            sqliteStorage.connect();
             getLogger().info("SQLite selected as the database.");
         }
 
@@ -178,10 +171,12 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
         getCommand("playtime").setTabCompleter(this);
         getCommand("playtimetracker").setExecutor(this);
         getCommand("playtimetop").setExecutor(this);
-        getCommand("importplaytimes").setExecutor(this);
-        this.getCommand("importplaytimes").setExecutor(
-                new ImportPlayTimesCommand(this, autoRankManager, (MySQLStorage) storage)
-        );
+
+        if (getCommand("importplaytimes") != null) {
+            getCommand("importplaytimes").setExecutor(
+                    new ImportPlayTimesCommand(this, autoRankManager, storage)
+            );
+        }
     }
 
     private void registerCommand(String name, CommandExecutor executor, TabCompleter tabCompleter) {
@@ -702,12 +697,26 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
                 sender.sendMessage("§cYou do not have permission to import.");
                 return true;
             }
-            if (storage != null && storage.getPlayTimesConnection() != null) {
-                autoRankManager.importPlayTimesDataWithAfk(storage);
-                sender.sendMessage("§aPlayTimes data import started successfully!");
-            } else {
+
+            if (storage == null || storage.getPlayTimesConnection() == null) {
                 sender.sendMessage("§cDatabase connection missing, cannot import PlayTimes data.");
+                return true;
             }
+
+            if (!(storage instanceof MySQLStorage)) {
+                sender.sendMessage("§cImport is only supported when using MySQL storage.");
+                return true;
+            }
+
+            PlayTimesMySQLStorage importStorage = new PlayTimesMySQLStorage(this);
+            if (!importStorage.connect()) {
+                sender.sendMessage("§cFailed to connect to import database.");
+                return true;
+            }
+
+            autoRankManager.importPlayTimesDataWithAfk(importStorage, (MySQLStorage) storage);
+
+            sender.sendMessage("§aPlayTimes data import started successfully!");
             return true;
         } catch (Exception e) {
             sender.sendMessage("§cAn error occurred during the import command.");
