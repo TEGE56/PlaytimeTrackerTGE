@@ -63,9 +63,10 @@ PlaytimeTrackerTGE is a Minecraft server plugin designed to track and manage pla
 ## Installation
 
 1. Download the latest `.jar` file from the releases.
-2. Place the `.jar` file into your server's `plugins` folder.
-3. Restart your server.
-4. Configure the plugin via the generated configuration files as needed.
+2. Place the `PlaytimeTrackerTGE.jar` file into your spigot/paper server(s) `plugins` folder(s).
+3.  **(optional)** Place the `PlaytimeTrackerTGEBungee.jar` file into your Proxy `plugins` folder
+4. Restart your server(s).
+5. Configure the plugin via the generated configuration files as needed.
 
 ---
 
@@ -79,7 +80,7 @@ PlaytimeTrackerTGE is a Minecraft server plugin designed to track and manage pla
 
 ## Support
 
-For bug reports, feature requests, or help, please open an issue on the GitHub repository.
+For bug reports, feature requests, or help, please open an issue on the GitHub repository or contact me via Discord DM: https://discord.gg/vpPkEbTG
 
 ---
 
