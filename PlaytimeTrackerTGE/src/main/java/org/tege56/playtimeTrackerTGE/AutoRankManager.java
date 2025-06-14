@@ -138,6 +138,7 @@ public class AutoRankManager {
 
     public void sendPluginMessageToBungee(String subChannel, String message) {
         String combinedKey = subChannel + "::" + message;
+        String parsed = ChatColor.translateAlternateColorCodes('&', message);
 
         if (recentlySentPluginMessages.contains(combinedKey)) {
             return;
@@ -148,17 +149,22 @@ public class AutoRankManager {
             return;
         }
 
-        ByteArrayDataOutput out = ByteStreams.newDataOutput();
-        out.writeUTF(subChannel);
-        out.writeUTF(message);
+        if (plugin.getConfig().getBoolean("use_bungee", false)) {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeUTF(subChannel);
+            out.writeUTF(message);
 
-        Player player = Bukkit.getOnlinePlayers().iterator().next();
-        player.sendPluginMessage(plugin, "tege56:playtimetrackertgebungee", out.toByteArray());
+            Player player = Bukkit.getOnlinePlayers().iterator().next();
+            player.sendPluginMessage(plugin, "tege56:playtimetrackertgebungee", out.toByteArray());
 
-        Bukkit.getLogger().info("[PlaytimeTrackerTGE] Sent plugin message to BungeeCord [" + subChannel + "]: " + message);
+            Bukkit.getLogger().info("[PlaytimeTrackerTGE] Sent plugin message to BungeeCord [" + subChannel + "]: " + message);
+        } else {
+            Bukkit.broadcastMessage(parsed);
+            Bukkit.getLogger().info("[PlaytimeTrackerTGE] Bungee disabled – broadcasted locally [" + subChannel + "]: " + message);
+        }
 
         recentlySentPluginMessages.add(combinedKey);
-        Bukkit.getScheduler().runTaskLater(plugin, () -> recentlySentPluginMessages.remove(combinedKey), 20L); // 1 second cooldown
+        Bukkit.getScheduler().runTaskLater(plugin, () -> recentlySentPluginMessages.remove(combinedKey), 20L);
     }
 
     private void updateLastGivenRank(UUID uuid, String newRank) {
@@ -240,7 +246,7 @@ public class AutoRankManager {
 
                 long totalTicks = rs.getLong("totalPlaytime");
                 long afkTicks = rs.getLong("totalAFKtime");
-                long playtimeMinutes = Math.max((totalTicks - afkTicks) / 60, 0); // estetään negatiivinen aika
+                long playtimeMinutes = Math.max((totalTicks - afkTicks) / 60, 0);
 
                 OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(uuid);
                 String username = offlinePlayer.getName() != null ? offlinePlayer.getName() : "Unknown";

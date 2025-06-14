@@ -6,6 +6,7 @@ org\tege56\playtimeTrackerTGE\PlayTimesMySQLStorage.class
 org\tege56\playtimeTrackerTGE\PlaytimeExpansion.class
 org\tege56\playtimeTrackerTGE\storage\MySQLStorage.class
 org\tege56\playtimeTrackerTGE\RemoveLastRankCommand.class
+org\tege56\playtimeTrackerTGE\BungeeMessageReceiver.class
 org\tege56\playtimeTrackerTGE\AutoRankManager.class
 org\tege56\playtimeTrackerTGE\storage\SQLiteStorage.class
 org\tege56\playtimeTrackerTGE\RankReward.class

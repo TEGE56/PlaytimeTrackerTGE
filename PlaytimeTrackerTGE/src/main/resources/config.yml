@@ -84,8 +84,8 @@ rankup_self_message_enabled: true
 rankup_self_message: "&aCongratulations! You received a new rank: &e%rank%"
 
 # Show the rankup message to all players
-rankup_broadcast_enabled: false
+rankup_broadcast_enabled: true
 rankup_broadcast_message: "&6%player% has achieved a new rank: &e%rank%!"
 
-enable_first_join_message: false
+enable_first_join_message: true
 first_join_message: "&e%player% joined the server for the first time!"

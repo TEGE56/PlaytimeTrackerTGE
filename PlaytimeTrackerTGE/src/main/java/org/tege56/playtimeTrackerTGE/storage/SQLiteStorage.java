@@ -82,6 +82,7 @@ public class SQLiteStorage implements StorageProvider {
 
     @Override
     public void savePlaytime(UUID uuid, String name, long minutes) {
+        if (!ensureConnection()) return;
         try {
             PreparedStatement ps = connection.prepareStatement(
                     "INSERT INTO playtime (uuid, username, play_minutes, first_join) " +
@@ -109,6 +110,8 @@ public class SQLiteStorage implements StorageProvider {
 
     @Override
     public void resetPlaytime(String name) {
+        if (!ensureConnection()) return;
+
         String sql = "UPDATE playtime SET play_minutes = 0 WHERE username = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, name);

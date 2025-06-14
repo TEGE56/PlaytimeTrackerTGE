@@ -1,5 +1,5 @@
 name: PlaytimeTrackerTGE
-version: '1.0-SNAPSHOT'
+version: '1.0.1 BETA'
 author: TEGE56
 main: org.tege56.playtimeTrackerTGE.PlaytimeTrackerTGE
 api-version: '1.21'

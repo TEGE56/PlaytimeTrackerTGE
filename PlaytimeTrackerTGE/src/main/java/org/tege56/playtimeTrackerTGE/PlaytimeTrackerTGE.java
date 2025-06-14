@@ -1,7 +1,5 @@
 package org.tege56.playtimeTrackerTGE;
 
-import com.google.common.io.ByteArrayDataOutput;
-import com.google.common.io.ByteStreams;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.luckperms.api.LuckPerms;
 import org.bukkit.Bukkit;
@@ -74,15 +72,20 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
 
         if (!setupDatabase()) return;
         if (!setupLuckPerms()) return;
-        this.messageSender = new PluginMessageSender(this);
-        this.autoRankManager = new AutoRankManager(this, luckPerms, this.storage, this.messageSender);
 
-        getServer().getMessenger().registerOutgoingPluginChannel(this, "tege56:playtimetrackertgebungee");
+        this.messageSender = new PluginMessageSender(this);
 
         afkMoveThreshold = getConfig().getDouble("afk.moveThreshold", 0.2);
         useBungee = getConfig().getBoolean("use_bungee", true);
-        this.firstJoinMessageEnabled = getConfig().getBoolean("enable_first_join_message", true);
-        this.firstJoinMessage = getConfig().getString("first_join_message", "&e%player% joined the server for the first time!!");
+        firstJoinMessageEnabled = getConfig().getBoolean("enable_first_join_message", true);
+        firstJoinMessage = getConfig().getString("first_join_message", "&e%player% joined the server for the first time!!");
+
+        if (useBungee) {
+            getServer().getMessenger().registerOutgoingPluginChannel(this, "tege56:playtimetrackertgebungee");
+            getServer().getMessenger().registerIncomingPluginChannel(this, "tege56:playtimetrackertgebungee", new BungeeMessageReceiver(this));
+        }
+
+        this.autoRankManager = new AutoRankManager(this, luckPerms, this.storage, this.messageSender);
 
         initializeManagers();
         setupPlaceholderAPI();
@@ -92,6 +95,7 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
 
         getLogger().info("\u001B[32mThe plugin started successfully!\u001B[0m");
     }
+
 
     private void loadPlugin() {
         saveDefaultConfig();
@@ -171,6 +175,8 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
         getCommand("playtime").setTabCompleter(this);
         getCommand("playtimetracker").setExecutor(this);
         getCommand("playtimetop").setExecutor(this);
+        getCommand("removelastrank").setExecutor(
+                new RemoveLastRankCommand(this, autoRankManager));
 
         if (getCommand("importplaytimes") != null) {
             getCommand("importplaytimes").setExecutor(
@@ -249,49 +255,26 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
         joinTimes.put(uuid, now);
 
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
-            if (storage.isFirstJoin(uuid)) {
-                if (firstJoinMessageEnabled) {
-                    String message = firstJoinMessage.replace("%player%", player.getName()).replace("&", "§");
-                    sendMessageToServers(message);
-                }
+            boolean isFirstJoin = false;
 
-                try {
-                    PreparedStatement ps = storage.prepareFirstJoinStatement(uuid, player.getName());
-                    ps.executeUpdate();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+            try {
+                isFirstJoin = storage.isFirstJoin(uuid);
+                PreparedStatement ps = storage.prepareFirstJoinStatement(uuid, player.getName());
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                this.getLogger().severe("❌ SQL error in onJoin: " + e.getMessage());
+                e.printStackTrace();
+            }
+
+            if (isFirstJoin && firstJoinMessageEnabled) {
+                String rawMessage = firstJoinMessage.replace("%player%", player.getName());
+                String coloredMessage = ChatColor.translateAlternateColorCodes('&', rawMessage);
+
+                Bukkit.getScheduler().runTaskLater(this, () -> {
+                    messageSender.sendPluginMessageToBungee("first_join", coloredMessage);
+                }, 20L); // 20 ticks = 1 sekunti
             }
         });
-    }
-
-    public void sendMessageToServers(String message) {
-        if (recentlySentMessages.contains(message)) {
-            return;
-        }
-
-        if (Bukkit.getOnlinePlayers().isEmpty()) {
-            Bukkit.getLogger().info("[PlaytimeTrackerTGE] No online players – message not sent.");
-            return;
-        }
-
-        if (PlaytimeTrackerTGE.instance.isUseBungee()) {
-            ByteArrayDataOutput out = ByteStreams.newDataOutput();
-            out.writeUTF("Message");
-            out.writeUTF(message);
-
-            Player player = Bukkit.getOnlinePlayers().iterator().next();
-            player.sendPluginMessage(PlaytimeTrackerTGE.instance, "tege56:playtimetrackertgebungee", out.toByteArray());
-
-            Bukkit.getLogger().info("[PlaytimeTrackerTGE] Sent plugin message to BungeeCord: " + message);
-        } else {
-            String colored = ChatColor.translateAlternateColorCodes('&', message);
-            Bukkit.broadcastMessage(colored);
-            Bukkit.getLogger().info("[PlaytimeTrackerTGE] Bungee is disabled – sent chat message only to this server: " + message);
-        }
-
-        recentlySentMessages.add(message);
-        Bukkit.getScheduler().runTaskLater(PlaytimeTrackerTGE.instance, () -> recentlySentMessages.remove(message), 20L);
     }
 
     @EventHandler

@@ -22,7 +22,7 @@ public class MySQLStorage implements StorageProvider {
         String username = plugin.getConfig().getString("database.mysql.username");
         String password = plugin.getConfig().getString("database.mysql.password");
 
-        String url = "jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&autoReconnect=true";
+        String url = "jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&autoReconnect=true&validationQuery=SELECT 1";
 
         try {
             if (mainConnection != null && !mainConnection.isClosed()) {
@@ -247,11 +247,13 @@ public class MySQLStorage implements StorageProvider {
 
     @Override
     public Connection getMainConnection() {
+        ensureConnection();
         return mainConnection;
     }
 
     @Override
     public Connection getPlayTimesConnection() {
+        ensureConnection();
         return mainConnection;
     }
 
@@ -324,15 +326,19 @@ public class MySQLStorage implements StorageProvider {
     }
 
     public boolean isFirstJoin(UUID uuid) {
-        String sql = "SELECT COUNT(*) FROM playtime WHERE uuid = ?";
+        String sql = "SELECT first_join FROM playtime WHERE uuid = ?";
         try (PreparedStatement ps = prepareStatement(sql)) {
             ps.setString(1, uuid.toString());
             try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() && rs.getInt(1) == 0;
+                if (rs.next()) {
+                    return rs.getLong("first_join") == 0;
+                } else {
+                    return true;
+                }
             }
         } catch (SQLException e) {
             plugin.getLogger().severe("Error checking first join: " + e.getMessage());
+            return false;
         }
-        return false;
     }
 }

@@ -41,7 +41,6 @@ public class PlaytimeExpansion extends PlaceholderExpansion {
     public String onPlaceholderRequest(Player player, String identifier) {
         if (player == null) return "";
 
-        // Erillinen tarkistus AFK-tilasta
         if (identifier.equalsIgnoreCase("is_afk")) {
             return plugin.isAFK(player.getUniqueId()) ? "true" : "false";
         }

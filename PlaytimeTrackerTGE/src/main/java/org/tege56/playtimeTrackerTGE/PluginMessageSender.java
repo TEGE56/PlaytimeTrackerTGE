@@ -25,15 +25,23 @@ public class PluginMessageSender {
             return;
         }
 
-        Player target = Bukkit.getOnlinePlayers().stream().findFirst().orElse(null);
+        Player target = Bukkit.getOnlinePlayers().stream()
+                .filter(p -> p.isOnline() && p.isValid())
+                .findFirst().orElse(null);
         if (target == null) {
             plugin.getLogger().warning("❌ Could not send message – no players online.");
             return;
         }
 
         boolean useBungee = plugin.getConfig().getBoolean("use_bungee", true);
+        if (!useBungee) {
+            String colored = ChatColor.translateAlternateColorCodes('&', message);
+            Bukkit.broadcastMessage(colored);
+            plugin.getLogger().info("ℹ️ Bungee is disabled – message shown on the server: " + colored);
+            return;
+        }
 
-        if (useBungee) {
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!plugin.getServer().getMessenger().isOutgoingChannelRegistered(plugin, "tege56:playtimetrackertgebungee")) {
                 plugin.getLogger().warning("❌ Outgoing channel 'tege56:playtimetrackertgebungee' is not registered.");
                 return;
@@ -45,14 +53,10 @@ public class PluginMessageSender {
 
             target.sendPluginMessage(plugin, "tege56:playtimetrackertgebungee", out.toByteArray());
             plugin.getLogger().info("✅ Sent plugin message [" + subChannel + "]: " + message);
-        } else {
-            String colored = ChatColor.translateAlternateColorCodes('&', message);
-            Bukkit.broadcastMessage(colored);
-            plugin.getLogger().info("ℹ️ Bungee is disabled – message shown on the server: " + colored);
-        }
+        }, 2L); // 2 tick delay = ~0.1 sec
 
         recentlySentPluginMessages.add(key);
-        Bukkit.getScheduler().runTaskLater(plugin, () -> recentlySentPluginMessages.remove(key), 20L); // 1 second spam prevention
+        Bukkit.getScheduler().runTaskLater(plugin, () -> recentlySentPluginMessages.remove(key), 20L); // 1s duplikaattisuoja
     }
 
     public void sendMessageToServers(String message) {

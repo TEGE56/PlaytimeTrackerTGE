@@ -4,7 +4,7 @@
   <groupId>org.tege56</groupId>
   <artifactId>PlaytimeTrackerTGE</artifactId>
   <name>PlaytimeTrackerTGE</name>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0.1 BETA</version>
   <build>
     <defaultGoal>clean package</defaultGoal>
     <resources>
@@ -31,6 +31,23 @@
             <goals>
               <goal>shade</goal>
             </goals>
+            <configuration>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <transformer>
+                  <mainClass>your.package.MainClass</mainClass>
+                </transformer>
+              </transformers>
+            </configuration>
           </execution>
         </executions>
       </plugin>
