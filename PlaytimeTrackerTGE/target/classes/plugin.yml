@@ -1,5 +1,5 @@
 name: PlaytimeTrackerTGE
-version: '1.0.1 BETA'
+version: '1.0.4 BETA'
 author: TEGE56
 main: org.tege56.playtimeTrackerTGE.PlaytimeTrackerTGE
 api-version: '1.21'
@@ -53,6 +53,16 @@ commands:
     permission: playtimetracker.import
     permission-message: §cYou do not have permission to use this command.
 
+  importstatplaytimes:
+    description: Imports playtimes from PlaytimeTrackerTGE/stats data into the database.
+    usage: /importstatplaytimes
+    permission: playtimetracker.import
+
+  afk:
+    description: Switch AFK mode on or off
+    usage: /afk
+    permission: playtimetracker.afk
+
 permissions:
   playtime.use:
     description: Allows usage of the /playtime command.
@@ -84,4 +94,8 @@ permissions:
 
   playtimetracker.import:
     description: Allows importing PlayTimes plugin data into the database.
+    default: op
+
+  playtimetracker.afk:
+    description: Allows toggling AFK status
     default: op

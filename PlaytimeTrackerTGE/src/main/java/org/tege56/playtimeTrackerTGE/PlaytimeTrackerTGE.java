@@ -4,12 +4,15 @@ import me.clip.placeholderapi.PlaceholderAPI;
 import net.luckperms.api.LuckPerms;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.block.Block;
 import org.bukkit.command.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -43,6 +46,9 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
     private AutoRankManager autoRankManager;
     private LuckPerms luckPerms;
     private StorageProvider storage;
+    private boolean afkEnabled;
+    private boolean afkSleepingIgnoredEnabled;
+    private boolean countAfkPlaytime;
     private boolean afkNotificationsEnabled;
     private int playtimeUpdateIntervalSeconds;
     private double afkMoveThreshold;
@@ -53,6 +59,8 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
     private boolean firstJoinMessageEnabled;
 
     private final Set<String> knownUsernames = new HashSet<>();
+
+    private final Map<UUID, Long> afkToggleCooldown = new HashMap<>();
 
     private void cacheKnownPlayers() {
         Set<UUID> uuids = storage.getAllPlayerUUIDs();
@@ -173,8 +181,16 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
     private void setupCommands() {
         getCommand("playtime").setExecutor(this);
         getCommand("playtime").setTabCompleter(this);
+
         getCommand("playtimetracker").setExecutor(this);
+        getCommand("playtimetracker").setTabCompleter(this);
+
         getCommand("playtimetop").setExecutor(this);
+        getCommand("playtimetop").setTabCompleter(this);
+
+        getCommand("afk").setExecutor(this);
+        getCommand("afk").setTabCompleter(this);
+
         getCommand("removelastrank").setExecutor(
                 new RemoveLastRankCommand(this, autoRankManager));
 
@@ -183,6 +199,10 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
                     new ImportPlayTimesCommand(this, autoRankManager, storage)
             );
         }
+
+        getCommand("importstatplaytimes").setExecutor(
+                new ImportStatPlayTimesCommand(this, storage)
+        );
     }
 
     private void registerCommand(String name, CommandExecutor executor, TabCompleter tabCompleter) {
@@ -231,11 +251,17 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
         getConfig().options().copyDefaults(true);
         saveConfig();
         FileConfiguration config = getConfig();
-        afkNotificationsEnabled = config.getBoolean("afk_notifications_enabled", true);
+
+        afkEnabled = config.getBoolean("afk.enabled", true);
+        countAfkPlaytime = config.getBoolean("afk.count-afk-playtime", false);
         afkTimeoutSeconds = config.getLong("afk_timeout_seconds", 300);
-        playtimeFormat = config.getStringList("playtime_format");
+        afkMoveThreshold = config.getDouble("afk.moveThreshold", 0.2);
+        afkSleepingIgnoredEnabled = getConfig().getBoolean("afk.afk_sleeping_ignored", true);
+        afkNotificationsEnabled = config.getBoolean("afk_notifications_enabled", true);
         afkEnterMessage = config.getString("afk_enter_message", "&7%player% has gone AFK.");
         afkExitMessage = config.getString("afk_exit_message", "&7%player% is no longer AFK.");
+
+        playtimeFormat = config.getStringList("playtime_format");
         firstJoinMessage = config.getString("first_join_message", "&e%player% joined the server for the first time!");
         playtimeUpdateIntervalSeconds = config.getInt("playtime_update_interval_seconds", 60);
     }
@@ -272,7 +298,7 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
 
                 Bukkit.getScheduler().runTaskLater(this, () -> {
                     messageSender.sendPluginMessageToBungee("first_join", coloredMessage);
-                }, 20L); // 20 ticks = 1 sekunti
+                }, 2L); // 20 ticks = 1 sekunti
             }
         });
     }
@@ -310,15 +336,113 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
     }
 
     private void exitAFK(Player player) {
+        if (!afkEnabled) return;
+
         UUID uuid = player.getUniqueId();
         long now = Instant.now().getEpochSecond();
 
         lastMoveTime.put(uuid, now);
 
         if (isAFK.getOrDefault(uuid, false)) {
-            isAFK.put(uuid, false);
+            setAfkStatus(player, false);
             joinTimes.put(uuid, now);
+        }
+    }
 
+    @EventHandler
+    public void onMove(PlayerMoveEvent event) {
+        if (!afkEnabled) return;
+
+        Player player = event.getPlayer();
+
+        double dx = event.getTo().getX() - event.getFrom().getX();
+        double dy = event.getTo().getY() - event.getFrom().getY();
+        double dz = event.getTo().getZ() - event.getFrom().getZ();
+
+        if (Math.abs(dx) < 0.01) dx = 0;
+        if (Math.abs(dy) < 0.01) dy = 0;
+        if (Math.abs(dz) < 0.01) dz = 0;
+
+        if (dy > 0.01 && dy < 0.60) {
+            return;
+        }
+
+        double distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+        if (distance > afkMoveThreshold) {
+            exitAFK(player);
+        }
+    }
+
+    @EventHandler
+    public void onChat(AsyncPlayerChatEvent event) {
+        if (!afkEnabled) return;
+
+        Bukkit.getScheduler().runTask(this, () -> exitAFK(event.getPlayer()));
+    }
+
+    @EventHandler
+    public void onCommandPreprocess(PlayerCommandPreprocessEvent event) {
+        if (!afkEnabled) return;
+
+        exitAFK(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onBreak(BlockBreakEvent event) {
+        if (!afkEnabled) return;
+
+        exitAFK(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onInteract(PlayerInteractEvent event) {
+        if (!afkEnabled) return;
+
+        Action action = event.getAction();
+        if (action != Action.RIGHT_CLICK_BLOCK) return;
+
+        Block clickedBlock = event.getClickedBlock();
+        if (clickedBlock == null) return;
+
+        Material type = clickedBlock.getType();
+
+        if (isStorageBlock(type)) {
+            exitAFK(event.getPlayer());
+        }
+    }
+
+    private boolean isStorageBlock(Material type) {
+        return switch (type) {
+            case CHEST, TRAPPED_CHEST,
+                 BARREL, SHULKER_BOX, WHITE_SHULKER_BOX, ORANGE_SHULKER_BOX,
+                 MAGENTA_SHULKER_BOX, LIGHT_BLUE_SHULKER_BOX, YELLOW_SHULKER_BOX,
+                 LIME_SHULKER_BOX, PINK_SHULKER_BOX, GRAY_SHULKER_BOX,
+                 LIGHT_GRAY_SHULKER_BOX, CYAN_SHULKER_BOX, PURPLE_SHULKER_BOX,
+                 BLUE_SHULKER_BOX, BROWN_SHULKER_BOX, GREEN_SHULKER_BOX,
+                 RED_SHULKER_BOX, BLACK_SHULKER_BOX,
+                 FURNACE, BLAST_FURNACE, SMOKER,
+                 DISPENSER, DROPPER, HOPPER,
+                 BREWING_STAND,
+                 ENDER_CHEST -> true;
+            default -> false;
+        };
+    }
+
+    private void setAfkStatus(Player player, boolean afk) {
+        UUID uuid = player.getUniqueId();
+        isAFK.put(uuid, afk);
+        if (afkSleepingIgnoredEnabled) {
+            player.setSleepingIgnored(afk);
+        }
+
+        if (afk) {
+            if (afkNotificationsEnabled) {
+                String message = afkEnterMessage.replace("%player%", player.getName()).replace("&", "§");
+                player.sendMessage(message);
+            }
+        } else {
+            joinTimes.put(uuid, Instant.now().getEpochSecond());
             if (afkNotificationsEnabled) {
                 String message = afkExitMessage.replace("%player%", player.getName()).replace("&", "§");
                 player.sendMessage(message);
@@ -326,47 +450,12 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
         }
     }
 
-    @EventHandler
-    public void onMove(PlayerMoveEvent event) {
-        Player player = event.getPlayer();
-
-        if (afkMoveThreshold <= 0) {
-            getLogger().severe("Error: afkMoveThreshold on 0! Check your config.yml");
-            return;
-        }
-
-        if (event.getFrom().getX() == event.getTo().getX() &&
-                event.getFrom().getY() == event.getTo().getY() &&
-                event.getFrom().getZ() == event.getTo().getZ()) {
-            return;
-        }
-
-        double distanceSquared =
-                Math.pow(event.getTo().getX() - event.getFrom().getX(), 2) +
-                        Math.pow(event.getTo().getY() - event.getFrom().getY(), 2) +
-                        Math.pow(event.getTo().getZ() - event.getFrom().getZ(), 2);
-
-        if (distanceSquared > Math.pow(afkMoveThreshold, 2)) {
-            exitAFK(player);
-        }
-    }
-
-    @EventHandler
-    public void onChat(AsyncPlayerChatEvent event) {
-        Bukkit.getScheduler().runTask(this, () -> exitAFK(event.getPlayer()));
-    }
-
-    @EventHandler
-    public void onCommandPreprocess(PlayerCommandPreprocessEvent event) {
-        exitAFK(event.getPlayer());
-    }
-
-    @EventHandler
-    public void onBreak(BlockBreakEvent event) {
-        exitAFK(event.getPlayer());
-    }
-
     private void startAFKChecker() {
+        if (!afkEnabled) {
+            getLogger().info("AFK checking is disabled in the config.");
+            return;
+        }
+
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             long now = Instant.now().getEpochSecond();
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -374,7 +463,7 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
                 long lastMove = lastMoveTime.getOrDefault(uuid, now);
 
                 if (!isAFK.getOrDefault(uuid, false) && (now - lastMove) >= afkTimeoutSeconds) {
-                    isAFK.put(uuid, true);
+                    setAfkStatus(player, true);
 
                     long join = joinTimes.getOrDefault(uuid, now);
                     long session = (now - join) / 60;
@@ -383,11 +472,6 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
                     }
 
                     joinTimes.put(uuid, now);
-
-                    if (afkNotificationsEnabled) {
-                        String message = afkEnterMessage.replace("%player%", player.getName()).replace("&", "§");
-                        player.sendMessage(message);
-                    }
                 }
             }
         }, 20L * 5, 20L * 5);
@@ -400,7 +484,9 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
 
             for (Player player : Bukkit.getOnlinePlayers()) {
                 UUID uuid = player.getUniqueId();
-                if (!isAFK.getOrDefault(uuid, false)) {
+                boolean isAfk = isAFK.getOrDefault(uuid, false);
+
+                if (!isAfk || countAfkPlaytime) {
                     long join = joinTimes.getOrDefault(uuid, now);
                     long session = (now - join) / 60;
                     if (session > 0) {
@@ -569,6 +655,8 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
                     return handlePlaytimeTrackerCommand(sender, args);
                 case "importplaytimes":
                     return handleImportPlaytimesCommand(sender);
+                case "afk":
+                    return handleAfkCommand(sender);
                 default:
                     return false;
             }
@@ -735,7 +823,7 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
 
         if (cmd.equals("playtimeadd") && args.length == 2) {
             if (sender.hasPermission("playtime.add")) {
-                return partialMatch(args[1], Arrays.asList("60", "120", "300")); // Esimerkkiminuutteja
+                return partialMatch(args[1], Arrays.asList("60", "120", "300"));
             }
         }
 
@@ -748,6 +836,12 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
         if (cmd.equals("playtimeset") && args.length == 2) {
             if (sender.hasPermission("playtime.set")) {
                 return partialMatch(args[1], Arrays.asList("60", "120", "300"));
+            }
+        }
+
+        if (cmd.equals("afk")) {
+            if (sender.hasPermission("playtimetracker.afk")) {
+                return Collections.emptyList();
             }
         }
 
@@ -772,5 +866,31 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
 
     public boolean isAFK(UUID uuid) {
         return isAFK.getOrDefault(uuid, false);
+    }
+
+    private boolean handleAfkCommand(CommandSender sender) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("§cThis command can only be used by players.");
+            return true;
+        }
+
+        if (!sender.hasPermission("playtimetracker.afk")) {
+            sender.sendMessage("§cYou do not have permission to use this command.");
+            return true;
+        }
+
+        Player player = (Player) sender;
+        UUID uuid = player.getUniqueId();
+
+        boolean currentlyAfk = isAFK.getOrDefault(uuid, false);
+
+        if (currentlyAfk) {
+            exitAFK(player); // AFK pois
+        } else {
+            setAfkStatus(player, true); // AFK päälle
+            lastMoveTime.put(uuid, Instant.now().getEpochSecond());
+        }
+
+        return true;
     }
 }

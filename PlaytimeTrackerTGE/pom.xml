@@ -6,7 +6,7 @@
 
     <groupId>org.tege56</groupId>
     <artifactId>PlaytimeTrackerTGE</artifactId>
-    <version>1.0.1 BETA</version>
+    <version>1.0.4</version>
     <packaging>jar</packaging>
 
     <name>PlaytimeTrackerTGE</name>
@@ -90,7 +90,7 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <version>1.21.4-R0.1-SNAPSHOT</version>
+            <version>1.21.10-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

@@ -162,9 +162,6 @@ public class AutoRankManager {
             Bukkit.broadcastMessage(parsed);
             Bukkit.getLogger().info("[PlaytimeTrackerTGE] Bungee disabled – broadcasted locally [" + subChannel + "]: " + message);
         }
-
-        recentlySentPluginMessages.add(combinedKey);
-        Bukkit.getScheduler().runTaskLater(plugin, () -> recentlySentPluginMessages.remove(combinedKey), 20L);
     }
 
     private void updateLastGivenRank(UUID uuid, String newRank) {

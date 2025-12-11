@@ -6,9 +6,21 @@
 # Time in seconds before entering AFK mode
 afk_timeout_seconds: 300
 
-# Sensitivity for exiting AFK when moving
+# AFK settings:
+# - Enable or disable AFK system
+# - Count time spent AFK as playtime
+# - Movement sensitivity for exiting AFK (lower = more sensitive)
+# - Enable or disable sleep ignore
 afk:
+  enabled: true
+  count-afk-playtime: false
   moveThreshold: 0.2
+  afk_sleeping_ignored: true
+
+# Message shown to player when entering or leaving AFK mode
+afk_notifications_enabled: true
+afk_enter_message: "&7%player% is now AFK."
+afk_exit_message: "&7%player% is no longer AFK."
 
 # How often the plugin updates playtime data, in seconds
 playtime_update_interval_seconds: 60
@@ -31,10 +43,7 @@ top_playtime_header: "&6--- Top 10 Players ---"
 top_playtime_format: "&e%rank%. &a%player%: %hours%h %minutes%min"
 top_playtime_footer: "&6-----------------------"
 
-# Message shown to player when entering or leaving AFK mode
-afk_notifications_enabled: true
-afk_enter_message: "&7%player% is now AFK."
-afk_exit_message: "&7%player% is no longer AFK."
+
 
 # MYSQL Settings. If your password includes special characters like !,: or @, wrap it in quotes like "password"
 database:
@@ -57,7 +66,9 @@ playtimes_import_mysql:
   username: root
   password: example
 
-# Automatic ranking integration with LuckPerms. group = lp rank name
+# LuckPerms automatic rank integration:
+# Use 'group' to specify the corresponding LuckPerms rank name.
+# These are examples – feel free to add, remove, or modify lines.
 rank_rewards:
   - hours: 30
     group: "beginner"
@@ -87,5 +98,10 @@ rankup_self_message: "&aCongratulations! You received a new rank: &e%rank%"
 rankup_broadcast_enabled: true
 rankup_broadcast_message: "&6%player% has achieved a new rank: &e%rank%!"
 
+# Show the first join message to all players
 enable_first_join_message: true
 first_join_message: "&e%player% joined the server for the first time!"
+
+#Discord messages from autoranking system
+discord_webhook_enabled: false
+discord_webhook_url: "https://discord.com/api/webhooks/your_webhook_id"
