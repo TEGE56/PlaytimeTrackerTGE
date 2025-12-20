@@ -32,16 +32,20 @@ public class BungeeMessageReceiver implements PluginMessageListener {
                     case "rankup_broadcast":
                     case "message":
                     case "first_join":
-                        Bukkit.broadcastMessage(coloredMessage);
-                        plugin.getLogger().info("📩 Received proxy message [" + subChannel + "]: " + msg);
+                        for (Player p : Bukkit.getOnlinePlayers()) {
+                            p.sendMessage(coloredMessage);
+                        }
+                        plugin.getLogger().info(
+                                "📩 Received proxy message [" + subChannel + "]: " + msg
+                        );
                         break;
+
                     default:
                         plugin.getLogger().warning("⚠️ Unknown subchannel: " + subChannel);
-                        break;
                 }
             });
         } catch (Exception e) {
-            plugin.getLogger().severe("❌ Error receiving plugin message from Bungee:");
+            plugin.getLogger().severe("❌ Error receiving plugin message from proxy:");
             e.printStackTrace();
         }
     }

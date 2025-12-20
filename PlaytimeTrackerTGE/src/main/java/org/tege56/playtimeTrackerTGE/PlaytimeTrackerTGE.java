@@ -159,8 +159,12 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
     }
 
     private void initializeManagers() {
-        PluginMessageSender messageSender = new PluginMessageSender(this);
-        this.autoRankManager = new AutoRankManager(this, luckPerms, storage, messageSender);
+        this.autoRankManager = new AutoRankManager(
+                this,
+                luckPerms,
+                storage,
+                this.messageSender
+        );
         getLogger().info("AutoRankManager initialized.");
     }
 
@@ -288,18 +292,24 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
                 PreparedStatement ps = storage.prepareFirstJoinStatement(uuid, player.getName());
                 ps.executeUpdate();
             } catch (SQLException e) {
-                this.getLogger().severe("❌ SQL error in onJoin: " + e.getMessage());
+                getLogger().severe("❌ SQL error in onJoin");
                 e.printStackTrace();
             }
 
-            if (isFirstJoin && firstJoinMessageEnabled) {
-                String rawMessage = firstJoinMessage.replace("%player%", player.getName());
-                String coloredMessage = ChatColor.translateAlternateColorCodes('&', rawMessage);
+            if (!isFirstJoin || !firstJoinMessageEnabled) return;
 
-                Bukkit.getScheduler().runTaskLater(this, () -> {
-                    messageSender.sendPluginMessageToBungee("first_join", coloredMessage);
-                }, 2L); // 20 ticks = 1 sekunti
-            }
+            String rawMessage = firstJoinMessage.replace("%player%", player.getName());
+            String coloredMessage = ChatColor.translateAlternateColorCodes('&', rawMessage);
+
+            Bukkit.getScheduler().runTaskLater(this, () -> {
+                if (!player.isOnline()) return;
+
+                messageSender.sendPluginMessageToBungee(
+                        player,
+                        "first_join",
+                        coloredMessage
+                );
+            }, 40L);
         });
     }
 
@@ -885,9 +895,9 @@ public class PlaytimeTrackerTGE extends JavaPlugin implements Listener, CommandE
         boolean currentlyAfk = isAFK.getOrDefault(uuid, false);
 
         if (currentlyAfk) {
-            exitAFK(player); // AFK pois
+            exitAFK(player);
         } else {
-            setAfkStatus(player, true); // AFK päälle
+            setAfkStatus(player, true);
             lastMoveTime.put(uuid, Instant.now().getEpochSecond());
         }
 

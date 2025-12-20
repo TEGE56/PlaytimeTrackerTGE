@@ -7,59 +7,51 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 public class PluginMessageSender {
 
     private final JavaPlugin plugin;
-    private final Set<String> recentlySentPluginMessages = ConcurrentHashMap.newKeySet();
 
     public PluginMessageSender(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 
-    public void sendPluginMessageToBungee(String subChannel, String message) {
-        String key = subChannel + "::" + message;
-        if (recentlySentPluginMessages.contains(key)) {
+    public void sendPluginMessageToBungee(
+            Player player,
+            String subChannel,
+            String message
+    ) {
+        if (player == null || !player.isOnline()) return;
+
+        if (!plugin.getServer().getMessenger()
+                .isOutgoingChannelRegistered(plugin, "tege56:playtimetrackertgebungee")) {
+            plugin.getLogger().warning("❌ Outgoing channel not registered.");
             return;
         }
 
-        Player target = Bukkit.getOnlinePlayers().stream()
-                .filter(p -> p.isOnline() && p.isValid())
-                .findFirst().orElse(null);
-        if (target == null) {
-            plugin.getLogger().warning("❌ Could not send message – no players online.");
-            return;
-        }
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.writeUTF(subChannel);
+        out.writeUTF(message);
 
-        boolean useBungee = plugin.getConfig().getBoolean("use_bungee", true);
-        if (!useBungee) {
-            String colored = ChatColor.translateAlternateColorCodes('&', message);
-            Bukkit.broadcastMessage(colored);
-            plugin.getLogger().info("ℹ️ Bungee is disabled – message shown on the server: " + colored);
-            return;
-        }
+        player.sendPluginMessage(
+                plugin,
+                "tege56:playtimetrackertgebungee",
+                out.toByteArray()
+        );
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (!plugin.getServer().getMessenger().isOutgoingChannelRegistered(plugin, "tege56:playtimetrackertgebungee")) {
-                plugin.getLogger().warning("❌ Outgoing channel 'tege56:playtimetrackertgebungee' is not registered.");
-                return;
-            }
-
-            ByteArrayDataOutput out = ByteStreams.newDataOutput();
-            out.writeUTF(subChannel);
-            out.writeUTF(message);
-
-            target.sendPluginMessage(plugin, "tege56:playtimetrackertgebungee", out.toByteArray());
-            plugin.getLogger().info("✅ Sent plugin message [" + subChannel + "]: " + message);
-        }, 2L); // 2 tick delay = ~0.1 sec
-
-        recentlySentPluginMessages.add(key);
-        Bukkit.getScheduler().runTaskLater(plugin, () -> recentlySentPluginMessages.remove(key), 20L); // 1s duplikaattisuoja
+        plugin.getLogger().info("✅ Sent plugin message [" + subChannel + "] via " + player.getName());
     }
 
-    public void sendMessageToServers(String message) {
-        sendPluginMessageToBungee("Message", message);
+    public void sendPluginMessageToBungee(String subChannel, String message) {
+        Player player = Bukkit.getOnlinePlayers().stream().findFirst().orElse(null);
+        if (player == null) return;
+
+        sendPluginMessageToBungee(player, subChannel, message);
+    }
+
+    public void sendLocalBroadcast(String message) {
+        String colored = ChatColor.translateAlternateColorCodes('&', message);
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.sendMessage(colored);
+        }
     }
 }

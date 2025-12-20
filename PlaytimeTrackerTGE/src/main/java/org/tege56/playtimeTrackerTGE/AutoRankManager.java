@@ -131,7 +131,7 @@ public class AutoRankManager {
                         "&6%player% has reached a new rank: &e%rank%!");
                 String parsed = broadcast.replace("%player%", player.getName()).replace("%rank%", displayName);
 
-                messageSender.sendPluginMessageToBungee("rankup_broadcast", parsed);
+                messageSender.sendPluginMessageToBungee(player, "rankup_broadcast", parsed);
             }
         });
     }
