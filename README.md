@@ -42,6 +42,7 @@ PlaytimeTrackerTGE is a Minecraft server plugin designed to track and manage pla
 | `/playtimetracker`| Reloads the configuration file.               | `/playtimetracker reload`       | `playtimetracker.reload`       |
 | `/removelastrank` | Removes the player's last received rank.      | `/removelastrank <player>`      | `playtimetracker.removelastrank` |
 | `/importplaytimes`| **Imports playtime data from the PlayTimes plugin.** | `/importplaytimes`         | `playtimetracker.import`       |
+| `/afk`            | **Sets player in to afk mode.**               | `/afk`                          | `playtimetracker.afk    `       |
 
 ---
 
